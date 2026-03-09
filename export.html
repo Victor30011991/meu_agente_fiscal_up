@@ -83,6 +83,14 @@ button:hover { opacity: .88; transform: translateY(-1px); }
 }
 .chart-box h3 { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: #6b7280; text-align: center; flex-shrink: 0; }
 .chart-box .chart-inner { position: relative; width: 100%; flex: 1; }
+.chart-legend {
+  font-size: 10px; font-weight: 600; color: #6b7280;
+  text-align: center; padding: 4px 6px 2px;
+  border-top: 1px solid #f1f3f9; margin-top: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  flex-shrink: 0;
+}
+.chart-legend span { color: var(--primary); font-weight: 700; }
 
 /* ── Filtros da tabela ── */
 .filter-row {
@@ -804,6 +812,137 @@ if (activeCharts.find(c => c.id === "saldos")) {
   }
 }
 
+/* ============================================================
+   LEGENDAS DINÂMICAS DOS GRÁFICOS
+   Geradas a partir dos dados reais — aparecem na tela e no PDF
+   ============================================================ */
+function gerarLegendas() {
+  const fmt = v => "R$ " + Number(v).toLocaleString("pt-BR", {minimumFractionDigits:2, maximumFractionDigits:2});
+  const pct = (v, t) => t > 0 ? (v/t*100).toFixed(1)+"%" : "--";
+
+  const legendas = {};
+
+  // 1. Pizza categorias
+  if (activeCharts.find(c => c.id === "pizza")) {
+    const tipoPizza = chartCfgAll?.pizza?.tipo || "Saída";
+    const mapa = tipoPizza === "Entrada" ? catEntradas : mapacat;
+    const total = tipoPizza === "Entrada" ? totalEnt : totalSai;
+    const top = Object.entries(mapa).sort((a,b) => b[1]-a[1])[0];
+    legendas["pizza"] = top
+      ? `▸ Maior ${tipoPizza === "Entrada" ? "receita" : "gasto"}: ${top[0]} · ${pct(top[1], total)}`
+      : "▸ Sem dados suficientes";
+  }
+
+  // 2. Evolução mensal
+  if (activeCharts.find(c => c.id === "evolucao")) {
+    const nM = monthly.labels.length;
+    const mmSai = nM > 0 ? totalSai / nM : 0;
+    const mmEnt = nM > 0 ? totalEnt / nM : 0;
+    legendas["evolucao"] = nM > 0
+      ? `▸ ${nM} ${nM===1?"mês":"meses"} · Ent. média ${fmt(mmEnt)} · Saí. média ${fmt(mmSai)}`
+      : "▸ Sem dados de período";
+  }
+
+  // 3. Top gastos
+  if (activeCharts.find(c => c.id === "topGastos")) {
+    const lim = chartCfgAll?.topGastos?.limit === "todas" ? 999 : parseInt(chartCfgAll?.topGastos?.limit||"7");
+    const ts = Object.entries(mapacat).sort((a,b) => b[1]-a[1]).slice(0, lim);
+    legendas["topGastos"] = ts.length
+      ? `▸ ${ts.length} categorias · Top: ${ts[0][0]} ${fmt(ts[0][1])}`
+      : "▸ Sem saídas categorizadas";
+  }
+
+  // 4. Fluxo de caixa
+  if (activeCharts.find(c => c.id === "fluxo")) {
+    const meses = [...new Set(dadosRaw.map(l => (l.data||"").substring(0,7)).filter(Boolean))].sort();
+    const ultimo = meses[meses.length - 1];
+    if (ultimo) {
+      const lancUlt = dadosRaw.filter(l => (l.data||"").startsWith(ultimo));
+      const eU = lancUlt.filter(l => l.tipo==="Entrada").reduce((s,l) => s+l.valor, 0);
+      const sU = lancUlt.filter(l => l.tipo!=="Entrada").reduce((s,l) => s+l.valor, 0);
+      const [y,m] = ultimo.split("-");
+      const label = new Date(+y,+m-1).toLocaleDateString("pt-BR",{month:"short",year:"2-digit"});
+      legendas["fluxo"] = `▸ ${label.toUpperCase()}: Ent. ${fmt(eU)} · Saí. ${fmt(sU)}`;
+    }
+  }
+
+  // 5. Pizza CPF/CNPJ
+  if (activeCharts.find(c => c.id === "pizzaCpf")) {
+    const tipoCpf = chartCfgAll?.pizzaCpf?.tipo || "Saída";
+    const mapCpf = {};
+    dadosRaw.forEach(l => {
+      const d = (l.doc||"").trim(); if (!d) return;
+      if (!mapCpf[d]) mapCpf[d] = {e:0,s:0};
+      l.tipo==="Entrada" ? mapCpf[d].e+=l.valor : mapCpf[d].s+=l.valor;
+    });
+    const entries = Object.entries(mapCpf)
+      .map(([k,v]) => [k, tipoCpf==="Entrada"?v.e:tipoCpf==="Resultado"?v.e-v.s:v.s])
+      .filter(([,v]) => v > 0)
+      .sort((a,b) => b[1]-a[1]);
+    const total = entries.reduce((s,[,v]) => s+v, 0);
+    legendas["pizzaCpf"] = entries.length >= 2
+      ? `▸ ${entries[0][0].substring(0,12)}: ${pct(entries[0][1],total)} · ${entries[1][0].substring(0,12)}: ${pct(entries[1][1],total)}`
+      : entries.length === 1
+        ? `▸ ${entries[0][0]}: ${fmt(entries[0][1])}`
+        : "▸ Sem documentos associados";
+  }
+
+  // 6. Resultado acumulado
+  if (activeCharts.find(c => c.id === "resultado")) {
+    const mapR = {};
+    dadosRaw.forEach(l => {
+      if (!l.data) return;
+      const m = l.data.substring(0,7);
+      if (!mapR[m]) mapR[m] = 0;
+      mapR[m] += l.tipo==="Entrada" ? l.valor : -l.valor;
+    });
+    const keysR = Object.keys(mapR).sort();
+    let acc = 0; keysR.forEach(k => acc += mapR[k]);
+    legendas["resultado"] = keysR.length
+      ? `▸ Acumulado final: ${fmt(acc)}`
+      : "▸ Sem dados acumulados";
+  }
+
+  // 7. Radar de categorias
+  if (activeCharts.find(c => c.id === "radar")) {
+    const tipoRd = chartCfgAll?.radar?.tipo || "Saída";
+    const mcRd = {};
+    dadosRaw.filter(l => l.tipo===tipoRd).forEach(l => { mcRd[l.cat||"Outros"] = (mcRd[l.cat||"Outros"]||0)+l.valor; });
+    const n = Math.min(Object.keys(mcRd).length, 8);
+    legendas["radar"] = n > 0
+      ? `▸ ${n} ${n===1?"categoria":"categorias"} de ${tipoRd === "Entrada" ? "receitas" : "gastos"} mapeadas`
+      : "▸ Sem categorias para mapear";
+  }
+
+  // 8. Evolução de saldos
+  if (activeCharts.find(c => c.id === "saldos")) {
+    const dts = dadosRaw.map(l => l.data).filter(Boolean).sort();
+    if (dts.length >= 2) {
+      const d = s => { const[a,m,d]=s.split("-"); return `${d}/${m}`; };
+      legendas["saldos"] = `▸ Período: ${d(dts[0])} a ${d(dts[dts.length-1])} · ${dts.length} registros`;
+    } else {
+      legendas["saldos"] = "▸ Dados insuficientes para evolução";
+    }
+  }
+
+  // Injetar nas chart-boxes na tela
+  activeCharts.forEach(c => {
+    if (!legendas[c.id]) return;
+    const wrap = document.getElementById("wrap-" + c.id);
+    if (!wrap) return;
+    // Remover legenda anterior se já existir (ex: re-renderização)
+    wrap.querySelector(".chart-legend")?.remove();
+    const p = document.createElement("p");
+    p.className = "chart-legend";
+    p.textContent = legendas[c.id];
+    wrap.appendChild(p);
+  });
+
+  return legendas;
+}
+
+// Executa após todos os gráficos serem criados (aguarda um tick do event loop)
+setTimeout(gerarLegendas, 50);
 
 /* ============================================================
    EXPORTAR EXCEL
@@ -1388,35 +1527,73 @@ function exportPDF() {
       // 4. GRAFICOS
       // ══════════════════════════════════════════════════════════
       if (activeCharts.length > 0) {
-        // Verificar se cabe: sectionLabel(13) + 1ª linha de gráficos(gH=46) + margem(10)
-        fit(13 + 46 + 10);
+        // Coletar legendas do DOM (geradas por gerarLegendas())
+        const legendasPDF = {};
+        activeCharts.forEach(cm => {
+          const wrap = document.getElementById("wrap-" + cm.id);
+          const legEl = wrap?.querySelector(".chart-legend");
+          if (legEl) legendasPDF[cm.id] = legEl.textContent.trim();
+        });
+
+        // gH aumentado para acomodar legenda: 46 (gráfico) + 8 (legenda) = 54
+        const gH = 54;
+
+        // Verificar se cabe: sectionLabel(13) + 1ª linha de gráficos(gH) + margem(10)
+        fit(13 + gH + 10);
         sectionLabel("Graficos", `${activeCharts.length} ativo${activeCharts.length!==1?"s":""}`);
 
         const perRow = Math.min(activeCharts.length, 3);
         const gW = perRow===1?cW*.60 : perRow===2?(cW-4)/2 : (cW-8)/3;
-        const gH = 46;
         let rowY = y;
 
         activeCharts.forEach((cm,idx) => {
           if (idx>0 && idx%3===0){
-            // Avança y para a próxima linha de gráficos
             y = rowY+gH+10;
-            // Se não cabe a próxima linha na página, vira página e redefine rowY
             if(y + gH + 10 > H-FH-6){ page(); }
             rowY = y;
           }
           const xg = ML+(idx%3)*(gW+4);
           const cv = document.getElementById(cm.canvasId);
           if (!cv) return;
-          const ratio = cv.height&&cv.width ? cv.height/cv.width : .65;
-          const imgH  = Math.min(gH-6, +(gW*ratio).toFixed(1));
-          const imgY  = rowY+8+(gH-6-imgH)/2;
 
+          // Altura reservada para imagem: gH menos título(7) menos legenda(8) menos margens(4)
+          const imgAreaH = gH - 7 - 8 - 4;
+          const ratio = cv.height&&cv.width ? cv.height/cv.width : .65;
+          const imgH  = Math.min(imgAreaH, +(gW*ratio).toFixed(1));
+          const imgY  = rowY+8+(imgAreaH-imgH)/2;
+
+          // Card fundo + borda
           doc.setFillColor(...G.card); doc.roundedRect(xg,rowY,gW,gH,2,2,"F");
           doc.setDrawColor(...G.line); doc.setLineWidth(0.2); doc.roundedRect(xg,rowY,gW,gH,2,2,"S");
+
+          // Título no topo
           doc.setFontSize(5); doc.setFont(undefined,"bold"); doc.setTextColor(...G.mute);
           doc.text(cm.pdfTitle, xg+gW/2, rowY+5, {align:"center"});
+
+          // Imagem do gráfico
           try { doc.addImage(cv.toDataURL("image/png",1),"PNG",xg+2,imgY,gW-4,imgH,undefined,"FAST"); } catch(e){}
+
+          // Linha separadora antes da legenda
+          const legY = rowY+gH-8;
+          doc.setDrawColor(...G.line); doc.setLineWidth(0.15);
+          doc.line(xg+3, legY, xg+gW-3, legY);
+
+          // Legenda dinâmica
+          const legTxt = legendasPDF[cm.id] || "";
+          if (legTxt) {
+            // Parte fixa "▸ " em cinza, parte dinâmica em cor primária
+            const arrow = "\u25b8 ";
+            const body  = legTxt.startsWith("▸ ") ? legTxt.slice(2) : legTxt;
+            doc.setFontSize(4.8); doc.setFont(undefined,"normal");
+            doc.setTextColor(...G.mute);
+            doc.text(arrow, xg+3, legY+5);
+            const arrowW = doc.getTextWidth(arrow);
+            // Truncar se necessário
+            const maxW = gW - 6 - arrowW;
+            const bodyTxt = doc.splitTextToSize(body, maxW)[0]; // só 1 linha
+            doc.setTextColor(...P);
+            doc.text(bodyTxt, xg+3+arrowW, legY+5);
+          }
         });
         y = rowY+gH+10;
       }
