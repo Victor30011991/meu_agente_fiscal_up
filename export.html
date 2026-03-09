@@ -1131,7 +1131,7 @@ function exportPDF() {
       const R  = v => "R$ "+Number(v||0).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
       const D  = s => { if(!s)return"--"; const[a,m,d]=s.split("-"); return d?`${d}/${m}/${a}`:s; };
       const PCT= (v,t)=> t>0?(v/t*100).toFixed(1)+"%":"--";
-      const FH = 8;   // footer height
+      const FH = 6;   // footer height — minimalista
 
       function page() { doc.addPage(); y = MT+14; }
       function fit(h) { if (y+h > H-FH-6) page(); }
@@ -1150,8 +1150,10 @@ function exportPDF() {
         doc.setFontSize(9); doc.setFont(undefined,"bold"); doc.setTextColor(...G.ink);
         doc.text(txt, ML+6, y+6.2);
         if (sub) {
+          // Calcular largura do título COM a fonte 9pt (antes de trocar para 6pt)
+          const txtW = doc.getTextWidth(txt);
           doc.setFontSize(6); doc.setFont(undefined,"normal"); doc.setTextColor(...G.mute);
-          doc.text(sub, ML+6+doc.getTextWidth(txt)+3, y+6.2);
+          doc.text(sub, ML+6+txtW+3, y+6.2);
         }
         y += 13;
       }
@@ -1396,7 +1398,13 @@ function exportPDF() {
         let rowY = y;
 
         activeCharts.forEach((cm,idx) => {
-          if (idx>0 && idx%3===0){ y=rowY+gH+12; rowY=y; fit(gH+16); }
+          if (idx>0 && idx%3===0){
+            // Avança y para a próxima linha de gráficos
+            y = rowY+gH+10;
+            // Se não cabe a próxima linha na página, vira página e redefine rowY
+            if(y + gH + 10 > H-FH-6){ page(); }
+            rowY = y;
+          }
           const xg = ML+(idx%3)*(gW+4);
           const cv = document.getElementById(cm.canvasId);
           if (!cv) return;
@@ -1580,11 +1588,11 @@ function exportPDF() {
         doc.setFillColor(...P); doc.rect(0,H-FH,3,FH,"F");
         // Texto
         doc.setFontSize(5.5); doc.setFont(undefined,"normal"); doc.setTextColor(...G.mute);
-        doc.text("Meu Agente Fiscal v14  |  "+new Date().toLocaleDateString("pt-BR"),ML,H-2.5);
-        doc.text((info.nome||perfil).substring(0,38),W/2,H-2.5,{align:"center"});
+        doc.text("Meu Agente Fiscal v14  |  "+new Date().toLocaleDateString("pt-BR"),ML,H-1.8);
+        doc.text((info.nome||perfil).substring(0,38),W/2,H-1.8,{align:"center"});
         // Paginação
         doc.setFontSize(5.5); doc.setFont(undefined,"bold"); doc.setTextColor(...P);
-        doc.text(`${p} / ${nPag}`,W-MR,H-2.5,{align:"right"});
+        doc.text(`${p} / ${nPag}`,W-MR,H-1.8,{align:"right"});
       }
 
       doc.save("agente_fiscal_"+perfil+"_"+Date.now()+".pdf");
