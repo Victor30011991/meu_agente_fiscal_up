@@ -1167,79 +1167,78 @@ function exportPDF() {
         (urlP.get("qtd")||"1")!=="0" ? `${dadosRaw.length} lancamentos` : null
       ].filter(Boolean).join("   |   ");
 
+      // ── Cabeçalho compacto — todos os estilos em ~32mm (metade do original) ──
       if (pdfStyle === "bold") {
-        doc.setFillColor(...P); doc.rect(0,0,W,52,"F");
-        doc.setFillColor(...PD); doc.rect(0,42,W,10,"F");
-        // logo
+        doc.setFillColor(...P); doc.rect(0,0,W,26,"F");
+        doc.setFillColor(...PD); doc.rect(0,22,W,4,"F");
         doc.setFillColor(255,255,255); doc.setGState(doc.GState({opacity:.12}));
-        doc.roundedRect(ML,11,15,15,3,3,"F"); doc.setGState(doc.GState({opacity:1}));
-        doc.setFontSize(7.5); doc.setFont(undefined,"bold"); doc.setTextColor(...P);
-        doc.text("Fx",ML+3.5,21);
-        // nome
-        doc.setFontSize(16); doc.setFont(undefined,"bold"); doc.setTextColor(255,255,255);
-        doc.text(nome, ML+20, 21);
-        doc.setFontSize(6.5); doc.setFont(undefined,"normal"); doc.setTextColor(...mix(P,.5));
-        doc.text("Relatorio Financeiro", ML+20, 28);
-        if (metaStr) { doc.setFontSize(6); doc.setTextColor(200,220,255); doc.text(metaStr,ML,47); }
-        doc.setFontSize(5.5); doc.setTextColor(...mix(PD,.3)); doc.text("Meu Agente Fiscal v14",W-MR,47,{align:"right"});
-        y = 62;
+        doc.roundedRect(ML,6,11,11,2,2,"F"); doc.setGState(doc.GState({opacity:1}));
+        doc.setFontSize(6); doc.setFont(undefined,"bold"); doc.setTextColor(...P);
+        doc.text("Fx",ML+2.5,13);
+        doc.setFontSize(12); doc.setFont(undefined,"bold"); doc.setTextColor(255,255,255);
+        doc.text(nome, ML+16, 13);
+        doc.setFontSize(5.5); doc.setFont(undefined,"normal"); doc.setTextColor(...mix(P,.5));
+        doc.text("Relatorio Financeiro", ML+16, 18.5);
+        if (metaStr) { doc.setFontSize(5.5); doc.setTextColor(200,220,255); doc.text(metaStr,ML,24.5); }
+        doc.setFontSize(5); doc.setTextColor(...mix(PD,.3)); doc.text("Meu Agente Fiscal v14",W-MR,24.5,{align:"right"});
+        y = 32;
 
       } else if (pdfStyle === "dark") {
-        doc.setFillColor(14,20,38); doc.rect(0,0,W,52,"F");
-        doc.setFillColor(...P); doc.rect(0,0,W,2,"F");
-        doc.setFillColor(...P); doc.roundedRect(ML,11,15,15,3,3,"F");
-        doc.setFontSize(7.5); doc.setFont(undefined,"bold"); doc.setTextColor(255,255,255);
-        doc.text("Fx",ML+3.5,21);
-        doc.setFontSize(16); doc.setFont(undefined,"bold"); doc.setTextColor(255,255,255);
-        doc.text(nome,ML+20,21);
-        doc.setFontSize(6.5); doc.setFont(undefined,"normal"); doc.setTextColor(90,105,130);
-        doc.text("Relatorio Financeiro",ML+20,28);
-        doc.setFillColor(...P); doc.rect(0,40,W,0.6,"F");
-        if (metaStr){ doc.setFontSize(6); doc.setTextColor(80,95,120); doc.text(metaStr,ML,48); }
-        doc.setFontSize(5.5); doc.setTextColor(50,60,80); doc.text("Meu Agente Fiscal v14",W-MR,48,{align:"right"});
-        y = 62;
+        doc.setFillColor(14,20,38); doc.rect(0,0,W,26,"F");
+        doc.setFillColor(...P); doc.rect(0,0,W,1.5,"F");
+        doc.setFillColor(...P); doc.roundedRect(ML,6,11,11,2,2,"F");
+        doc.setFontSize(6); doc.setFont(undefined,"bold"); doc.setTextColor(255,255,255);
+        doc.text("Fx",ML+2.5,13);
+        doc.setFontSize(12); doc.setFont(undefined,"bold"); doc.setTextColor(255,255,255);
+        doc.text(nome,ML+16,13);
+        doc.setFontSize(5.5); doc.setFont(undefined,"normal"); doc.setTextColor(90,105,130);
+        doc.text("Relatorio Financeiro",ML+16,18.5);
+        doc.setFillColor(...P); doc.rect(0,22,W,0.5,"F");
+        if (metaStr){ doc.setFontSize(5.5); doc.setTextColor(80,95,120); doc.text(metaStr,ML,24.5); }
+        doc.setFontSize(5); doc.setTextColor(50,60,80); doc.text("Meu Agente Fiscal v14",W-MR,24.5,{align:"right"});
+        y = 32;
 
       } else if (pdfStyle === "diagonal") {
-        doc.setFillColor(...G.bg); doc.rect(0,0,W,54,"F");
-        doc.setFillColor(...P); doc.lines([[80,0],[66,50],[-66,0],[0,-50]],0,0,null,"F");
-        doc.setFillColor(...PL); doc.lines([[22,0],[22,50],[-22,0],[0,-50]],72,0,null,"F");
-        doc.setFontSize(12); doc.setFont(undefined,"bold"); doc.setTextColor(255,255,255); doc.text("Fx",ML+2,21);
-        doc.setFontSize(5.8); doc.setFont(undefined,"normal"); doc.setTextColor(...mix(P,.6));
-        doc.text("Meu Agente Fiscal",ML+2,28); doc.text("v14",ML+2,33);
-        doc.setFontSize(15); doc.setFont(undefined,"bold"); doc.setTextColor(...G.ink); doc.text(nome,105,20);
-        doc.setFontSize(6.5); doc.setFont(undefined,"normal"); doc.setTextColor(...G.sub);
-        doc.text("Relatorio Financeiro",105,27);
-        doc.setFillColor(...PL); doc.rect(0,44,W,10,"F");
-        doc.setFillColor(...P); doc.rect(0,44,W,0.6,"F");
-        if (metaStr){ doc.setFontSize(6); doc.setTextColor(...P); doc.text(metaStr,ML,50.5); }
-        doc.setFontSize(5.5); doc.setTextColor(...G.mute); doc.text("Meu Agente Fiscal v14",W-MR,50.5,{align:"right"});
-        y = 62;
+        doc.setFillColor(...G.bg); doc.rect(0,0,W,28,"F");
+        doc.setFillColor(...P); doc.lines([[44,0],[36,26],[-36,0],[0,-26]],0,0,null,"F");
+        doc.setFillColor(...PL); doc.lines([[12,0],[12,26],[-12,0],[0,-26]],40,0,null,"F");
+        doc.setFontSize(10); doc.setFont(undefined,"bold"); doc.setTextColor(255,255,255); doc.text("Fx",ML+2,13);
+        doc.setFontSize(5); doc.setFont(undefined,"normal"); doc.setTextColor(...mix(P,.6));
+        doc.text("Meu Agente Fiscal v14",ML+2,19);
+        doc.setFontSize(12); doc.setFont(undefined,"bold"); doc.setTextColor(...G.ink); doc.text(nome,62,12);
+        doc.setFontSize(5.5); doc.setFont(undefined,"normal"); doc.setTextColor(...G.sub);
+        doc.text("Relatorio Financeiro",62,18);
+        doc.setFillColor(...PL); doc.rect(0,22,W,6,"F");
+        doc.setFillColor(...P); doc.rect(0,22,W,0.5,"F");
+        if (metaStr){ doc.setFontSize(5.5); doc.setTextColor(...P); doc.text(metaStr,ML,26.5); }
+        doc.setFontSize(5); doc.setTextColor(...G.mute); doc.text("Meu Agente Fiscal v14",W-MR,26.5,{align:"right"});
+        y = 32;
 
       } else {
-        // CLEAN — elegante, minimalista
-        doc.setFillColor(...G.bg); doc.rect(0,0,W,56,"F");
-        doc.setFillColor(...P); doc.rect(0,0,W,2,"F");
+        // CLEAN — compacto e elegante
+        doc.setFillColor(...G.bg); doc.rect(0,0,W,28,"F");
+        doc.setFillColor(...P); doc.rect(0,0,W,1.5,"F");
         // Logo
-        doc.setFillColor(...P); doc.roundedRect(ML,12,14,14,2.5,2.5,"F");
-        doc.setFontSize(7); doc.setFont(undefined,"bold"); doc.setTextColor(255,255,255);
-        doc.text("Fx",ML+3.5,21.5);
+        doc.setFillColor(...P); doc.roundedRect(ML,6,11,11,2,2,"F");
+        doc.setFontSize(6); doc.setFont(undefined,"bold"); doc.setTextColor(255,255,255);
+        doc.text("Fx",ML+2.5,13);
         // Nome
-        doc.setFontSize(17); doc.setFont(undefined,"bold"); doc.setTextColor(...G.ink);
-        doc.text(nome, ML+19, 21.5);
-        // Linha acento sob nome
-        doc.setFillColor(...PM); doc.rect(ML+19, 23.5, Math.min(doc.getTextWidth(nome), cW-19), 0.8, "F");
-        doc.setFontSize(6.5); doc.setFont(undefined,"normal"); doc.setTextColor(...G.sub);
-        doc.text("Relatorio Financeiro", ML+19, 29);
-        // Faixa de meta
-        doc.setFillColor(...PL); doc.rect(0,42,W,14,"F");
-        doc.setFillColor(...P); doc.rect(0,42,W,0.6,"F");
-        if (metaStr) { doc.setFontSize(6.5); doc.setFont(undefined,"normal"); doc.setTextColor(...P); doc.text(metaStr,ML,51); }
-        doc.setFontSize(5.5); doc.setTextColor(...G.mute); doc.text("Meu Agente Fiscal v14",W-MR,51,{align:"right"});
-        y = 64;
+        doc.setFontSize(13); doc.setFont(undefined,"bold"); doc.setTextColor(...G.ink);
+        doc.text(nome, ML+15, 13);
+        // Sublinhado acento
+        doc.setFillColor(...PM); doc.rect(ML+15, 14.5, Math.min(doc.getTextWidth(nome), cW-15), 0.6, "F");
+        doc.setFontSize(5.5); doc.setFont(undefined,"normal"); doc.setTextColor(...G.sub);
+        doc.text("Relatorio Financeiro", ML+15, 19.5);
+        // Faixa de meta compacta
+        doc.setFillColor(...PL); doc.rect(0,22,W,6,"F");
+        doc.setFillColor(...P); doc.rect(0,22,W,0.5,"F");
+        if (metaStr) { doc.setFontSize(5.5); doc.setFont(undefined,"normal"); doc.setTextColor(...P); doc.text(metaStr,ML,26.5); }
+        doc.setFontSize(5); doc.setTextColor(...G.mute); doc.text("Meu Agente Fiscal v14",W-MR,26.5,{align:"right"});
+        y = 32;
       }
 
       // ══════════════════════════════════════════════════════════
-      // 1. PAINEL DE SALDOS — 3 cards leves
+      // 1. PAINEL DE SALDOS — 3 cards compactos
       // ══════════════════════════════════════════════════════════
       sectionLabel("Painel de Saldos");
 
@@ -1255,25 +1254,25 @@ function exportPDF() {
           dark:  resultado>=0?G.greenD:G.redD },
       ];
 
-      fit(28);
+      fit(20);
       cards.forEach((c,i) => {
         const x = ML + i*(cardW+4);
-        // Card fundo
-        doc.setFillColor(...c.light); doc.roundedRect(x,y,cardW,24,2.5,2.5,"F");
-        doc.setDrawColor(...c.accent); doc.setLineWidth(0.2); doc.roundedRect(x,y,cardW,24,2.5,2.5,"S");
+        // Card fundo — altura reduzida de 24 → 18mm
+        doc.setFillColor(...c.light); doc.roundedRect(x,y,cardW,18,2,2,"F");
+        doc.setDrawColor(...c.accent); doc.setLineWidth(0.2); doc.roundedRect(x,y,cardW,18,2,2,"S");
         // Barra topo
-        doc.setFillColor(...c.accent); doc.roundedRect(x,y,cardW,4.5,2.5,0,"F");
+        doc.setFillColor(...c.accent); doc.roundedRect(x,y,cardW,3.5,2,0,"F");
         // Label
-        doc.setFontSize(5.5); doc.setFont(undefined,"bold"); doc.setTextColor(255,255,255);
-        doc.text(c.label, x+cardW/2, y+3.4, {align:"center"});
+        doc.setFontSize(5); doc.setFont(undefined,"bold"); doc.setTextColor(255,255,255);
+        doc.text(c.label, x+cardW/2, y+2.7, {align:"center"});
         // Valor
-        doc.setFontSize(11); doc.setFont(undefined,"bold"); doc.setTextColor(...c.accent);
-        doc.text(c.val, x+cardW/2, y+14.5, {align:"center"});
+        doc.setFontSize(10); doc.setFont(undefined,"bold"); doc.setTextColor(...c.accent);
+        doc.text(c.val, x+cardW/2, y+11, {align:"center"});
         // Sub
-        doc.setFontSize(5.5); doc.setFont(undefined,"normal"); doc.setTextColor(...G.mute);
-        doc.text(c.sub, x+cardW/2, y+20.5, {align:"center"});
+        doc.setFontSize(5); doc.setFont(undefined,"normal"); doc.setTextColor(...G.mute);
+        doc.text(c.sub, x+cardW/2, y+15.5, {align:"center"});
       });
-      y += 30;
+      y += 22;
 
       // ══════════════════════════════════════════════════════════
       // 2. CATEGORIAS — tabela limpa
@@ -1360,9 +1359,9 @@ function exportPDF() {
         `Resultado: ${R(resultado)} | margem ${PCT(resultado,totalEnt)}. Saude financeira: ${saudeTxt}.`
       ].filter(Boolean);
 
-      doc.setFontSize(7);
-      let analH = 10;
-      const analSplits = linhas.map(t=>{ const s=doc.splitTextToSize(t,cW-6); analH+=s.length*4.8+3; return s; });
+      doc.setFontSize(6.2);
+      let analH = 8;
+      const analSplits = linhas.map(t=>{ const s=doc.splitTextToSize(t,cW-6); analH+=s.length*4.2+2.5; return s; });
       fit(analH+14);
       sectionLabel("Analise do Periodo");
 
@@ -1371,25 +1370,26 @@ function exportPDF() {
       doc.setFillColor(...P); doc.rect(ML,y,2.5,analH,"F");
       // badge saude
       const bw = doc.getTextWidth(saudeTxt)+8;
-      doc.setFillColor(...saudeCor); doc.roundedRect(W-MR-bw, y+3, bw, 6.5, 2,2,"F");
-      doc.setFontSize(5.5); doc.setFont(undefined,"bold"); doc.setTextColor(255,255,255);
-      doc.text(saudeTxt, W-MR-bw/2, y+7.2, {align:"center"});
+      doc.setFillColor(...saudeCor); doc.roundedRect(W-MR-bw, y+2.5, bw, 6, 2,2,"F");
+      doc.setFontSize(5); doc.setFont(undefined,"bold"); doc.setTextColor(255,255,255);
+      doc.text(saudeTxt, W-MR-bw/2, y+6.2, {align:"center"});
 
-      y += 6;
+      y += 5;
       analSplits.forEach((lines,i) => {
-        fit(lines.length*4.8+4);
-        doc.setFontSize(6.8); doc.setFont(undefined, i===analSplits.length-1?"bold":"normal");
+        fit(lines.length*4.2+3);
+        doc.setFontSize(6.2); doc.setFont(undefined, i===analSplits.length-1?"bold":"normal");
         if(i===analSplits.length-1) doc.setTextColor(...saudeCor); else doc.setTextColor(...G.ink);
         doc.text(lines, ML+6, y);
-        y += lines.length*4.8+3;
+        y += lines.length*4.2+2.5;
       });
-      y += 6;
+      y += 5;
 
       // ══════════════════════════════════════════════════════════
       // 4. GRAFICOS
       // ══════════════════════════════════════════════════════════
       if (activeCharts.length > 0) {
-        fit(20);
+        // Verificar se cabe: sectionLabel(13) + 1ª linha de gráficos(gH=46) + margem(10)
+        fit(13 + 46 + 10);
         sectionLabel("Graficos", `${activeCharts.length} ativo${activeCharts.length!==1?"s":""}`);
 
         const perRow = Math.min(activeCharts.length, 3);
