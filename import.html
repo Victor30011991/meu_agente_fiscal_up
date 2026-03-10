@@ -116,6 +116,47 @@ button:hover { opacity: .85; transform: translateY(-1px); }
 }
 .ft-excel { background: #ecfdf5; color: #059669; }
 .ft-pdf   { background: #fef2f2; color: #ef4444; }
+.ft-csv   { background: #eff6ff; color: #2563eb; }
+.ft-txt   { background: #f5f3ff; color: #7c3aed; }
+.ft-json  { background: #fff7ed; color: #ea580c; }
+.ft-paste { background: #f0fdf4; color: #16a34a; }
+
+/* ── Tabs arquivo / colar ── */
+.import-tabs { display: flex; gap: 0; margin-bottom: 0; border-bottom: 2px solid #e5e7eb; }
+.import-tab {
+  padding: 8px 20px; font-size: 13px; font-weight: 600; cursor: pointer;
+  border: none; background: none; color: #6b7280;
+  border-bottom: 3px solid transparent; margin-bottom: -2px;
+  transition: all .15s;
+}
+.import-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+.import-tab:hover:not(.active) { color: #374151; background: #f9fafb; border-radius: 6px 6px 0 0; }
+.import-panel { display: none; }
+.import-panel.active { display: block; }
+
+/* ── Textarea de colar ── */
+.paste-zone {
+  border: 2px dashed var(--primary); border-radius: 12px;
+  background: #fafafe; padding: 16px; margin-top: 14px;
+}
+.paste-zone textarea {
+  width: 100%; min-height: 140px; max-height: 280px;
+  border: 1px solid #e5e7eb; border-radius: 8px;
+  padding: 10px 12px; font-family: 'DM Mono', monospace;
+  font-size: 12px; color: #374151; resize: vertical;
+  outline: none; background: #fff; box-sizing: border-box;
+  line-height: 1.5;
+}
+.paste-zone textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(var(--primary-rgb),.1); }
+.paste-zone textarea::placeholder { color: #9ca3af; }
+.paste-btn {
+  margin-top: 10px; padding: 9px 22px;
+  background: var(--primary); color: #fff;
+  border: none; border-radius: 8px; font-size: 13px;
+  font-weight: 700; cursor: pointer; transition: background .15s;
+}
+.paste-btn:hover { background: var(--primary-d,#3730a3); }
+.paste-detect { font-size: 11px; color: #6b7280; margin-top: 7px; min-height: 18px; }
 
 /* ── Loading / processando ── */
 .processing {
@@ -200,37 +241,62 @@ button:hover { opacity: .85; transform: translateY(-1px); }
       <small style="color:#6b7280">Os dados serão adicionados a este perfil sem remover lançamentos existentes.</small>
     </div>
 
-    <!-- Zona de upload de arquivo -->
-    <div class="file-zone">
-      <input type="file" id="file" accept=".xlsx,.xls,.pdf">
-      <div class="icon">📂</div>
-      <strong>Clique ou arraste o arquivo aqui</strong>
-      <p>Extrato bancário em PDF ou planilha Excel</p>
-      <div class="file-types">
-        <span class="file-type-badge ft-excel">✅ Excel (.xlsx / .xls)</span>
-        <span class="file-type-badge ft-pdf">📄 PDF (extrato / relatório)</span>
+    <!-- Tabs: Arquivo / Colar texto -->
+    <div class="import-tabs">
+      <button class="import-tab active" onclick="switchTab('file')" id="tab-file">📂 Arquivo</button>
+      <button class="import-tab"        onclick="switchTab('paste')" id="tab-paste">📋 Colar texto</button>
+    </div>
+
+    <!-- Painel: Upload de arquivo -->
+    <div class="import-panel active" id="panel-file">
+      <div class="file-zone" style="margin-top:14px">
+        <input type="file" id="file" accept=".xlsx,.xls,.pdf,.csv,.txt,.json">
+        <div class="icon">📂</div>
+        <strong>Clique ou arraste o arquivo aqui</strong>
+        <p>Excel, PDF, CSV, TXT ou JSON</p>
+        <div class="file-types">
+          <span class="file-type-badge ft-excel">✅ Excel (.xlsx / .xls)</span>
+          <span class="file-type-badge ft-pdf">📄 PDF (extrato / relatório)</span>
+          <span class="file-type-badge ft-csv">📋 CSV (separado por ; ou ,)</span>
+          <span class="file-type-badge ft-txt">📝 TXT (colunas por tabulação)</span>
+          <span class="file-type-badge ft-json">{ } JSON (array de objetos)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Painel: Colar texto -->
+    <div class="import-panel" id="panel-paste">
+      <div class="paste-zone">
+        <strong style="font-size:13px;color:var(--primary)">📋 Cole os dados aqui</strong>
+        <p style="font-size:12px;color:#6b7280;margin:4px 0 10px">
+          Funciona com dados copiados do Excel, Google Sheets, CSV, TXT ou JSON.
+          Detecta o formato automaticamente.
+        </p>
+        <textarea id="pasteArea" placeholder="Cole aqui os dados tabulares...&#10;&#10;Exemplo (com cabeçalho):&#10;Data&#9;Tipo&#9;Valor&#9;Categoria&#9;Observação&#10;15/01/2024&#9;Saída&#9;150,00&#9;Alimentação&#9;Mercado&#10;&#10;Exemplo (sem cabeçalho — detectado automaticamente):&#10;15/01/2024&#9;Saída&#9;150,00&#9;Alimentação&#9;Mercado" oninput="detectarFormatoPaste()"></textarea>
+        <div class="paste-detect" id="pasteDetect"></div>
+        <button class="paste-btn" onclick="processPaste()">🔍 Analisar e importar</button>
       </div>
     </div>
 
     <!-- Formatos esperados -->
-    <div class="formats-grid">
+    <div class="formats-grid" style="margin-top:14px">
       <div class="info-box" style="margin:0">
-        <strong>📊 Excel esperado:</strong><br>
+        <strong>📊 Excel / CSV / TXT esperado:</strong><br>
         <small style="color:#374151;line-height:1.7">
           Colunas: <strong>Data | Categoria | Tipo | Valor | Observação</strong><br>
-          Colunas opcionais: <strong>Investimento | CPF_CNPJ</strong><br>
-          Tipo: "Entrada" ou "Saída"<br>
-          Valor numérico (ex: 1500 ou 1500.50)<br>
+          Opcionais: <strong>Investimento | CPF_CNPJ</strong><br>
+          Tipo: "Entrada" ou "Saída" (ou C/D, E/S)<br>
+          Valor: 1500 ou 1500,50 ou R$1.500,00<br>
           Data: AAAA-MM-DD ou DD/MM/AAAA
         </small>
       </div>
       <div class="info-box warn" style="margin:0">
-        <strong>📄 PDF — leitura automática:</strong><br>
+        <strong>{ } JSON / 📄 PDF:</strong><br>
         <small style="color:#374151;line-height:1.7">
-          Relatórios exportados pelo Meu Agente Fiscal<br>
+          JSON: array de objetos com campos reconhecidos<br>
+          PDF: relatórios exportados pelo Meu Agente Fiscal<br>
           Extratos com linhas: data, tipo, valor<br>
-          100% local, sem internet necessária<br>
-          Você revisa antes de confirmar
+          100% local — você revisa antes de confirmar
         </small>
       </div>
     </div>
@@ -536,6 +602,180 @@ function resolverContato(docRaw) {
 /* ============================================================
    DISPATCHER — identifica tipo de arquivo e delega
    ============================================================ */
+/* ============================================================
+   TABS — alternar entre upload de arquivo e colar texto
+   ============================================================ */
+function switchTab(tab) {
+  ['file','paste'].forEach(t => {
+    document.getElementById('tab-'+t).classList.toggle('active', t===tab);
+    document.getElementById('panel-'+t).classList.toggle('active', t===tab);
+  });
+  // Limpar estado ao trocar de tab
+  buffer = []; ignored = []; rawPdfText = "";
+  document.getElementById("previewCard").style.display = "none";
+  document.getElementById("statusBox").innerHTML = "";
+}
+
+/* ============================================================
+   DETECÇÃO DE FORMATO DO TEXTO COLADO
+   ============================================================ */
+function detectarFormatoPaste() {
+  const txt = (document.getElementById("pasteArea").value || "").trim();
+  const el  = document.getElementById("pasteDetect");
+  if (!txt) { el.textContent = ""; return; }
+
+  const linhas = txt.split(/\r?\n/).filter(l => l.trim());
+  if (linhas.length < 1) { el.textContent = ""; return; }
+
+  // Detectar se é JSON
+  if (txt.startsWith("[") || txt.startsWith("{")) {
+    el.innerHTML = `<span style="color:#ea580c;font-weight:700">{ }</span> Detectado: JSON`;
+    return;
+  }
+
+  // Detectar separador
+  const sep = linhas[0].includes("\t") ? "TAB"
+            : linhas[0].includes(";")  ? ";"
+            : linhas[0].includes(",")  ? ","
+            : linhas[0].includes("|")  ? "|"
+            : "?";
+
+  const nCols = sep === "TAB" ? linhas[0].split("\t").length
+              : sep === "?"   ? 1
+              : linhas[0].split(sep).length;
+
+  // Detectar se tem cabeçalho
+  const primeiraLinha = linhas[0].toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+  const temCabecalho  = /data|tipo|valor|cat|obs|cpf|cnpj|entr|said/.test(primeiraLinha);
+
+  const sepLabel = sep === "TAB" ? "tabulação (Excel)" : `"${sep}"`;
+  const cabLabel = temCabecalho ? "com cabeçalho" : "sem cabeçalho (colunas detectadas automaticamente)";
+  el.innerHTML = `<span style="color:var(--primary);font-weight:700">Detectado</span>: separador ${sepLabel} · ${nCols} colunas · ${linhas.length} linhas · ${cabLabel}`;
+}
+
+/* ============================================================
+   PROCESSAR TEXTO COLADO (Excel, CSV, TXT, JSON)
+   ============================================================ */
+function processPaste() {
+  const txt = (document.getElementById("pasteArea").value || "").trim();
+  if (!txt) { showStatus("Cole os dados antes de continuar.", "warning"); return; }
+
+  buffer = []; ignored = []; rawPdfText = "";
+  document.getElementById("previewCard").style.display = "none";
+  document.getElementById("statusBox").innerHTML = "";
+
+  // Tentar JSON primeiro
+  if (txt.startsWith("[") || txt.startsWith("{")) {
+    try {
+      let parsed = JSON.parse(txt);
+      if (!Array.isArray(parsed)) {
+        for (const k of Object.keys(parsed)) {
+          if (Array.isArray(parsed[k])) { parsed = parsed[k]; break; }
+        }
+      }
+      if (!Array.isArray(parsed) || !parsed.length) throw new Error("Array vazio");
+      parsed.forEach((obj, i) => {
+        if (typeof obj === "object" && obj !== null) {
+          const l = mapearLinha(obj, i); if (l) buffer.push(l);
+        }
+      });
+      document.getElementById("sourceTag").innerHTML = `<span class="badge badge-entrada">JSON colado</span>`;
+      renderPreview(); return;
+    } catch(e) {
+      showStatus("JSON inválido: " + e.message, "error"); return;
+    }
+  }
+
+  // Texto tabular — detectar separador
+  const linhas = txt.split(/\r?\n/).filter(l => l.trim());
+  if (linhas.length < 1) { showStatus("Nenhum dado encontrado.", "warning"); return; }
+
+  const sep = linhas[0].includes("\t") ? "\t"
+            : linhas[0].includes(";")  ? ";"
+            : linhas[0].includes("|")  ? "|"
+            : ",";
+
+  function splitLine(line) {
+    if (sep !== ",") return line.split(sep).map(v => v.trim());
+    // CSV com vírgula: respeitar aspas
+    const result = []; let cur = ""; let inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (c === '"') { inQ = !inQ; }
+      else if (c === "," && !inQ) { result.push(cur.trim()); cur = ""; }
+      else { cur += c; }
+    }
+    result.push(cur.trim());
+    return result;
+  }
+
+  // Detectar se a primeira linha é cabeçalho
+  const primeiraLinha = linhas[0].toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+  const temCabecalho  = /data|tipo|valor|cat|obs|cpf|cnpj|entr|said/.test(primeiraLinha);
+
+  let headers, startIdx;
+
+  if (temCabecalho) {
+    headers  = splitLine(linhas[0]).map(h => h.replace(/^"|"$/g,"").trim());
+    startIdx = 1;
+  } else {
+    // Sem cabeçalho: tentar inferir colunas por conteúdo da primeira linha de dados
+    const cols = splitLine(linhas[0]);
+    headers = inferirCabecalho(cols);
+    startIdx = 0;
+  }
+
+  for (let i = startIdx; i < linhas.length; i++) {
+    const vals = splitLine(linhas[i]).map(v => v.replace(/^"|"$/g,"").trim());
+    if (vals.every(v => !v)) continue;
+    const obj = {};
+    headers.forEach((h, idx) => { obj[h] = vals[idx] || ""; });
+    const lanc = mapearLinha(obj, i);
+    if (lanc) buffer.push(lanc);
+  }
+
+  if (!buffer.length) { showStatus("Nenhum lançamento válido reconhecido. Verifique o formato dos dados.", "warning"); return; }
+
+  document.getElementById("sourceTag").innerHTML = `<span class="badge badge-entrada">Texto colado</span>`;
+  renderPreview();
+}
+
+/* ============================================================
+   INFERIR CABEÇALHO SEM HEADER — analisa tipos de valor por coluna
+   ============================================================ */
+function inferirCabecalho(cols) {
+  // Heurística: analisar o conteúdo de cada coluna e atribuir nome provável
+  const headers = cols.map((val, i) => {
+    const v = (val || "").trim();
+
+    // Data? (dd/mm/aaaa ou aaaa-mm-dd)
+    if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(v) || /^\d{4}-\d{2}-\d{2}$/.test(v)) return "Data";
+
+    // Tipo entrada/saída?
+    const vl = v.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+    if (/^(entrada|saida|credito|debito|cr|db|c|d|e|s)$/.test(vl)) return "Tipo";
+
+    // Valor monetário?
+    if (/^R?\$?\s*[\d.,]+$/.test(v) && parseFloat(v.replace(/[R$\s.]/g,"").replace(",",".")) > 0) return "Valor";
+
+    // CPF (11 dígitos com ou sem formatação)?
+    if (/^\d{3}\.?\d{3}\.?\d{3}-?\d{2}$/.test(v)) return "CPF/CNPJ";
+
+    // CNPJ (14 dígitos)?
+    if (/^\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}$/.test(v)) return "CPF/CNPJ";
+
+    // Texto longo = provavelmente observação
+    if (v.length > 20) return "Observacao";
+
+    // Texto médio = provavelmente categoria
+    if (v.length > 3 && v.length <= 20 && /[a-zA-ZÀ-ú]/.test(v)) return "Categoria";
+
+    return `col_${i+1}`;
+  });
+
+  return headers;
+}
+
 document.getElementById("file").addEventListener("change", function () {
   // Reset do estado
   buffer = []; ignored = []; rawPdfText = "";
@@ -547,10 +787,195 @@ document.getElementById("file").addEventListener("change", function () {
   const f = this.files[0];
   if (!f) return;
   const ext = f.name.split(".").pop().toLowerCase();
-  if (ext === "pdf")                   processPDF(f);
+  if (ext === "pdf")                        processPDF(f);
   else if (ext === "xlsx" || ext === "xls") processExcel(f);
-  else showStatus("Formato não suportado. Use .xlsx, .xls ou .pdf", "error");
+  else if (ext === "csv")                   processCSV(f);
+  else if (ext === "txt")                   processTXT(f);
+  else if (ext === "json")                  processJSON(f);
+  else showStatus("Formato não suportado. Use .xlsx, .xls, .pdf, .csv, .txt ou .json", "error");
 });
+
+/* ============================================================
+   HELPER: mapear linha de objeto genérico → lançamento
+   Usado por CSV, TXT e JSON
+   ============================================================ */
+function mapearLinha(obj, index) {
+  // Mapeamento flexível de nomes de campo (case-insensitive, sem acento)
+  function campo(...nomes) {
+    for (const n of nomes) {
+      for (const k of Object.keys(obj)) {
+        if (k.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+            === n.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"")) {
+          const v = obj[k];
+          if (v !== null && v !== undefined && String(v).trim() !== "") return String(v).trim();
+        }
+      }
+    }
+    return "";
+  }
+
+  const dt   = validateDate(campo("data","date","dt"));
+  const tipo = validateTipo(campo("tipo","type","tp","lancamento","transacao"));
+  const val  = normalizeValue(campo("valor","value","val","montante","amount","vlr"));
+  const obs  = campo("observacao","obs","descricao","description","historico","memo","nota","note");
+  const inv  = normalizeValue(campo("investimento","invest","inv","aplicacao")) || 0;
+  const catRaw = campo("categoria","cat","category","grupo","group","tag");
+  const docRaw = campo("cpf","cnpj","cpf_cnpj","cpfcnpj","documento","doc","document","cpf / cnpj","cpf/cnpj");
+
+  const { cat, nova: catNova } = normalizarCat(catRaw || inferirCategoria(obs));
+  const { doc: docVal, nomeContato } = resolverContato(docRaw);
+
+  if (!tipo) { ignored.push({ motivo: `Linha ${index + 2}: tipo inválido ("${campo("tipo","type","tp") || ""}")` }); return null; }
+  if (!val)  { ignored.push({ motivo: `Linha ${index + 2}: valor inválido ("${campo("valor","value","val") || ""}")` }); return null; }
+  if (!dt)   { ignored.push({ motivo: `Linha ${index + 2}: data inválida ("${campo("data","date","dt") || ""}")` }); return null; }
+
+  return { data: dt, cat, catNova, tipo, valor: val, inv, doc: docVal, nomeContato, obs };
+}
+
+/* ============================================================
+   PROCESSAMENTO CSV
+   Suporta separador ; ou , — detecta automaticamente
+   ============================================================ */
+function processCSV(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const text = e.target.result;
+      if (!text.trim()) { showStatus("Arquivo CSV vazio.", "warning"); return; }
+
+      const lines = text.split(/\r?\n/).filter(l => l.trim());
+      if (lines.length < 2) { showStatus("CSV sem dados suficientes (mínimo: cabeçalho + 1 linha).", "warning"); return; }
+
+      // Detectar separador: ; ou ,
+      const sep = (lines[0].split(";").length >= lines[0].split(",").length) ? ";" : ",";
+
+      // Parsear CSV respeitando aspas
+      function parseCSVLine(line) {
+        const result = []; let cur = ""; let inQ = false;
+        for (let i = 0; i < line.length; i++) {
+          const c = line[i];
+          if (c === '"') { inQ = !inQ; }
+          else if (c === sep && !inQ) { result.push(cur.trim()); cur = ""; }
+          else { cur += c; }
+        }
+        result.push(cur.trim());
+        return result;
+      }
+
+      const headers = parseCSVLine(lines[0]).map(h => h.replace(/^"|"$/g,"").trim());
+      let count = 0;
+
+      for (let i = 1; i < lines.length; i++) {
+        const values = parseCSVLine(lines[i]).map(v => v.replace(/^"|"$/g,"").trim());
+        if (values.every(v => !v)) continue; // linha vazia
+        const obj = {};
+        headers.forEach((h, idx) => { obj[h] = values[idx] || ""; });
+        const lanc = mapearLinha(obj, i);
+        if (lanc) { buffer.push(lanc); count++; }
+      }
+
+      if (!count && !buffer.length) { showStatus("Nenhum lançamento válido encontrado no CSV.", "warning"); return; }
+
+      document.getElementById("sourceTag").innerHTML =
+        `<span class="badge badge-entrada">CSV</span>`;
+      renderPreview();
+    } catch (err) {
+      showStatus("Erro ao ler CSV: " + err.message, "error");
+      console.error(err);
+    }
+  };
+  reader.readAsText(file, "UTF-8");
+}
+
+/* ============================================================
+   PROCESSAMENTO TXT
+   Suporta separadores: tab, ; ou |
+   ============================================================ */
+function processTXT(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const text = e.target.result;
+      if (!text.trim()) { showStatus("Arquivo TXT vazio.", "warning"); return; }
+
+      const lines = text.split(/\r?\n/).filter(l => l.trim());
+      if (lines.length < 2) { showStatus("TXT sem dados suficientes.", "warning"); return; }
+
+      // Detectar separador: tab > | > ;
+      const firstLine = lines[0];
+      const sep = firstLine.includes("\t") ? "\t"
+                : firstLine.includes("|")  ? "|"
+                : ";";
+
+      const headers = firstLine.split(sep).map(h => h.trim());
+      let count = 0;
+
+      for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(sep).map(v => v.trim());
+        if (values.every(v => !v)) continue;
+        const obj = {};
+        headers.forEach((h, idx) => { obj[h] = values[idx] || ""; });
+        const lanc = mapearLinha(obj, i);
+        if (lanc) { buffer.push(lanc); count++; }
+      }
+
+      if (!count && !buffer.length) { showStatus("Nenhum lançamento válido encontrado no TXT.", "warning"); return; }
+
+      document.getElementById("sourceTag").innerHTML =
+        `<span class="badge badge-entrada">TXT</span>`;
+      renderPreview();
+    } catch (err) {
+      showStatus("Erro ao ler TXT: " + err.message, "error");
+      console.error(err);
+    }
+  };
+  reader.readAsText(file, "UTF-8");
+}
+
+/* ============================================================
+   PROCESSAMENTO JSON
+   Suporta: array de objetos planos
+   ============================================================ */
+function processJSON(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      let parsed;
+      try { parsed = JSON.parse(e.target.result); }
+      catch(je) { showStatus("JSON inválido: " + je.message, "error"); return; }
+
+      // Aceitar array direto ou objeto com campo que contém o array
+      let rows = null;
+      if (Array.isArray(parsed)) {
+        rows = parsed;
+      } else if (typeof parsed === "object") {
+        // Procurar primeiro campo que seja array
+        for (const k of Object.keys(parsed)) {
+          if (Array.isArray(parsed[k])) { rows = parsed[k]; break; }
+        }
+      }
+
+      if (!rows || !rows.length) { showStatus("JSON não contém array de lançamentos.", "warning"); return; }
+
+      let count = 0;
+      rows.forEach((obj, i) => {
+        if (typeof obj !== "object" || obj === null) return;
+        const lanc = mapearLinha(obj, i);
+        if (lanc) { buffer.push(lanc); count++; }
+      });
+
+      if (!count && !buffer.length) { showStatus("Nenhum lançamento válido encontrado no JSON.", "warning"); return; }
+
+      document.getElementById("sourceTag").innerHTML =
+        `<span class="badge badge-entrada">JSON</span>`;
+      renderPreview();
+    } catch (err) {
+      showStatus("Erro ao ler JSON: " + err.message, "error");
+      console.error(err);
+    }
+  };
+  reader.readAsText(file, "UTF-8");
+}
 
 /* ============================================================
    PROCESSAMENTO EXCEL
@@ -663,19 +1088,67 @@ async function processPDF(file) {
    ============================================================ */
 function parseMeuAgenteFiscalPDF(text) {
   const validos = [], ignorados = [];
-  // Regex: data ISO + categoria + tipo + valor monetário
-  const re = /(\d{4}-\d{2}-\d{2})\s+(.+?)\s+(Entrada|Sa[ií]da)\s+R\$\s*([\d.,]+)/gi;
-  let m;
-  while ((m = re.exec(text)) !== null) {
+
+  /* ── FORMATO 1: Extrato tabular gerado pelo Meu Agente Fiscal ──
+     Linha do extrato (após PDF.js):
+     "1 01/02/2026 -- Saída OUTROS R$ 240,00 CPF LAWDYANA Saída LAZER"
+     Colunas: # DATA DOC TIPO CATEGORIA R$ VALOR [DOC_SUFIXO TIPO_DUP OBS]
+  */
+  const reTabela = /^\s*\d+\s+(\d{2}\/\d{2}\/\d{4})\s+\S+\s+(Entrada|Sa[ií]da)\s+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÙÜÇ][A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÙÜÇ\s]+?)\s+R\$\s*([\d.,]+)\s*(.*)/i;
+  // Para separar o sufixo: "CPF NOME Saída OBS" ou "SEM CPF/CNPJ Saída OBS"
+  const reSuf   = /^(SEM\s+CPF\/CNPJ|--|\d[\d.\-\/]+|CPF\s+\S+(?:\s+\S+)*?|CNPJ\s+\S+(?:\s+\S+)*?)\s+(?:Entrada|Sa[ií]da)\s+(.*)/i;
+  const reCpfNm = /^(?:CPF|CNPJ)\s+(.+)/i;
+  const reSemCpf = /^SEM\s+CPF|^--$/i;
+
+  const linhas = text.split("\n").map(l => l.trim()).filter(l => l.length > 10);
+  let encontrouTabela = false;
+
+  for (const linha of linhas) {
+    const m = linha.match(reTabela);
+    if (!m) continue;
     const dt   = validateDate(m[1]);
-    const cat  = m[2].trim().replace(/\s+/g, " ").substring(0, 50);
-    const tipo = validateTipo(m[3]);
+    const tipo = validateTipo(m[2]);
+    const cat  = m[3].trim();
     const val  = normalizeValue(m[4]);
+    const suf  = (m[5] || "").trim();
+
+    // Separar CPF/CNPJ e obs do sufixo
+    let docFinal = "", nomeContato = "", obs = suf;
+    const ms = suf.match(reSuf);
+    if (ms) {
+      const docPart = ms[1].trim();
+      obs = ms[2].trim().substring(0, 80);
+      if (!reSemCpf.test(docPart)) {
+        const nc = docPart.match(reCpfNm);
+        if (nc) nomeContato = nc[1].trim();
+        else docFinal = docPart;
+      }
+    }
+
+    if (dt && tipo && val) {
+      encontrouTabela = true;
+      const { cat: catN, nova: catNova } = normalizarCat(cat || inferirCategoria(obs));
+      validos.push({ data: dt, cat: catN, catNova, tipo, valor: val, inv: 0, doc: docFinal, nomeContato, obs });
+    } else {
+      ignorados.push({ motivo: "Linha ignorada: " + linha.substring(0, 60) });
+    }
+  }
+
+  if (encontrouTabela) return { validos, ignorados, modo: "Meu Agente Fiscal Export" };
+
+  /* ── FORMATO 2 (legado): data ISO + categoria + tipo + R$ valor ── */
+  const reLegado = /(\d{4}-\d{2}-\d{2})\s+(.+?)\s+(Entrada|Sa[ií]da)\s+R\$\s*([\d.,]+)/gi;
+  let m2;
+  while ((m2 = reLegado.exec(text)) !== null) {
+    const dt   = validateDate(m2[1]);
+    const cat  = m2[2].trim().replace(/\s+/g, " ").substring(0, 50);
+    const tipo = validateTipo(m2[3]);
+    const val  = normalizeValue(m2[4]);
     if (dt && tipo && val) {
       const { cat: catN, nova: catNova } = normalizarCat(cat || inferirCategoria(""));
       validos.push({ data: dt, cat: catN, catNova, tipo, valor: val, inv: 0, doc: "", obs: "" });
     } else {
-      ignorados.push({ motivo: "Linha ignorada: " + m[0].substring(0, 60) });
+      ignorados.push({ motivo: "Linha ignorada: " + m2[0].substring(0, 60) });
     }
   }
   return { validos, ignorados, modo: "Meu Agente Fiscal Export" };
