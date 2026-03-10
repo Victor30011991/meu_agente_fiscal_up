@@ -1581,18 +1581,19 @@ function exportPDF() {
           // Legenda dinâmica
           const legTxt = legendasPDF[cm.id] || "";
           if (legTxt) {
-            // Parte fixa "▸ " em cinza, parte dinâmica em cor primária
-            const arrow = "\u25b8 ";
-            const body  = legTxt.startsWith("▸ ") ? legTxt.slice(2) : legTxt;
+            // Mini-rect colorido como bullet — sem dependência de Unicode/charset
+            // 100% compatível com qualquer renderer jsPDF/PDF
+            doc.setFillColor(...P);
+            doc.rect(xg+3, legY+2.5, 1.8, 1.8, "F");
+            // Texto dinâmico (remove prefixo ▸ ou > se presente)
+            const body = legTxt.startsWith("\u25b8 ") ? legTxt.slice(2)
+                       : legTxt.startsWith("> ")      ? legTxt.slice(2)
+                       : legTxt;
             doc.setFontSize(4.8); doc.setFont(undefined,"normal");
-            doc.setTextColor(...G.mute);
-            doc.text(arrow, xg+3, legY+5);
-            const arrowW = doc.getTextWidth(arrow);
-            // Truncar se necessário
-            const maxW = gW - 6 - arrowW;
+            const maxW = gW - 9;
             const bodyTxt = doc.splitTextToSize(body, maxW)[0]; // só 1 linha
             doc.setTextColor(...P);
-            doc.text(bodyTxt, xg+3+arrowW, legY+5);
+            doc.text(bodyTxt, xg+5.5, legY+5);
           }
         });
         y = rowY+gH+10;
